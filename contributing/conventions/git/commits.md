@@ -1,8 +1,18 @@
 # Commit conventions
 
+<h2>Table of contents</h2>
+
+- [1. Format](#1-format)
+- [2. Types](#2-types)
+- [3. Scopes](#3-scopes)
+  - [3.1. Scope mapping](#31-scope-mapping)
+- [4. Subject line](#4-subject-line)
+- [5. Body](#5-body)
+- [6. Examples](#6-examples)
+
 This project follows [Conventional Commits](https://www.conventionalcommits.org/).
 
-## Format
+## 1. Format
 
 ```text
 type(scope): subject
@@ -12,18 +22,16 @@ why the change was made. Write in imperative mood. Wrap at 72 characters.
 If the body covers 2+ points, use a bullet list.
 ```
 
-## Types
+## 2. Types
 
-| Type | Use when... |
-| --- | --- |
-| `feat` | Adding new content or a new feature |
-| `fix` | Correcting a bug or improving existing behaviour |
-| `docs` | Documentation-only changes |
-| `refactor` | Code restructuring with no behaviour change |
-| `test` | Adding or updating tests |
-| `chore` | Maintenance tasks (deps, CI, tooling) |
+- `feat` — Adding new content or a new feature
+- `fix` — Correcting a bug or improving existing behaviour
+- `docs` — Documentation-only changes
+- `refactor` — Code restructuring with no behaviour change
+- `test` — Adding or updating tests
+- `chore` — Maintenance tasks (deps, CI, tooling)
 
-## Scopes
+## 3. Scopes
 
 Every commit must include a scope. Use the scope that best matches the
 area of change:
@@ -32,35 +40,33 @@ area of change:
 `frontend` | `backend` | `tests` | `vscode` | `git` | `github` |
 `claude` | `nix` | `docker` | `database` | `contributors` | `markdownlint`
 
-### Scope mapping
+### 3.1. Scope mapping
 
-| Scope | Covers |
-| --- | --- |
-| `wiki` | `wiki/` pages |
-| `instructors` | `instructors/` (internal design notes) |
-| `docs` | `docs/` (architecture, contributing, etc.) |
-| `readme` | Root `README.md` |
-| `caddy` | `caddy/` config and reverse-proxy setup |
-| `lab` | `lab/` (task sheets, setup guide) |
-| `frontend` | `frontend/` |
-| `backend` | `backend/`, `pyproject.toml`, backend config |
-| `vscode` | `.vscode/` settings and extensions |
-| `git` | `.gitignore`, `.gitmodules`, git config |
-| `github` | `.github/` (workflows, issue templates, PR templates) |
-| `claude` | `.claude/` (skills, settings) |
-| `nix` | `flake.nix`, `flake.lock`, Nix-related config |
-| `docker` | `Dockerfile`, `compose.yaml`, Docker-related config |
-| `database` | `.sql` files, migrations, schema |
-| `contributors` | `CONTRIBUTORS.md` |
-| `markdownlint` | `.markdownlint*` config |
+- `wiki` — `wiki/` pages
+- `instructors` — `instructors/` (internal design notes)
+- `docs` — `docs/` (architecture, contributing, etc.)
+- `readme` — Root `README.md`
+- `caddy` — `caddy/` config and reverse-proxy setup
+- `lab` — `lab/` (task sheets, setup guide)
+- `frontend` — `frontend/`
+- `backend` — `backend/`, `pyproject.toml`, backend config
+- `vscode` — `.vscode/` settings and extensions
+- `git` — `.gitignore`, `.gitmodules`, git config
+- `github` — `.github/` (workflows, issue templates, PR templates)
+- `claude` — `.claude/` (skills, settings)
+- `nix` — `flake.nix`, `flake.lock`, Nix-related config
+- `docker` — `Dockerfile`, `compose.yaml`, Docker-related config
+- `database` — `.sql` files, migrations, schema
+- `contributors` — `CONTRIBUTORS.md`
+- `markdownlint` — `.markdownlint*` config
 
-## Subject line
+## 4. Subject line
 
 - Lowercase, imperative mood, no period at the end
 - Under 72 characters
 - Example: `feat(wiki): add Docker troubleshooting page`
 
-## Body
+## 5. Body
 
 - Optional — add one when the subject alone doesn't fully explain the
   change (e.g. non-obvious decisions, side effects, grouped changes)
@@ -69,7 +75,7 @@ area of change:
 - **2+ points &rarr; always use a bullet list** (never multiple
   paragraphs for separate points)
 
-## Examples
+## 6. Examples
 
 ```text
 feat(docs): add Service section to Docker wiki and link from setup
