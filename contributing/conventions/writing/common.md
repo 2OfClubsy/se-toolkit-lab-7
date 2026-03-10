@@ -296,9 +296,14 @@ Create the file `docs.md` with the following sections:
 
 ## 4.18. Inline formatting of technical terms
 
-Wrap names of tools, languages, formats, and protocols in backticks: `` `VS Code` ``, `` `Git` ``, `` `Docker` ``, `` `Python` ``, `` `SQL` ``, `` `JSON` ``, `` `CSV` ``, `` `SSH` ``, `` `WSL` ``.
+Wrap names of tools, languages, formats, and protocols in backticks: `` `VS Code` ``, `` `Git` ``, `` `Docker` ``, `` `Python` ``, `` `SQL` ``, `` `JSON` ``, `` `CSV` ``, `` `SSH` ``, `` `WSL` ``, `` `Autochecker` ``.
 
 Don't backtick acronyms that aren't names: VM, API, URL, ERD.
+
+Use these exact spellings and capitalizations for recurring terms in the lab:
+
+- backend — the back-end service; write as plain text, not inline code (not "back-end" or "back end")
+- frontend — the front-end service; write as plain text, not inline code (not "front-end" or "front end")
 
 ## 4.19. Steps with sub-steps
 
