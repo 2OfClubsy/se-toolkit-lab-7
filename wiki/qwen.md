@@ -195,7 +195,7 @@ The file must be non-empty.
 
 7. Save the file (`Ctrl + O`).
 
-8. To start the `Qwen` API,
+8. To start the `Qwen Code` API,
 
    [run in the `VS Code Terminal`](./vs-code.md#run-a-command-in-the-vs-code-terminal):
 
