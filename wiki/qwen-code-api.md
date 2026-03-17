@@ -159,11 +159,7 @@ Complete these steps:
      - [`<your-vm-ip-address>`](vm.md#your-vm-ip-address-placeholder) (LOCAL)
    - `<qwen-api-port>` with the value of `HOST_PORT`
    - `<qwen-api-key>` with the value of `QWEN_API_KEY`
-   - `<qwen-model>` with one of the available models:
-
-     - `coder-model` — `Qwen 3.5 Plus` (recommended).
-     - `qwen3-coder-plus` — `Qwen 3 Coder Plus`.
-     - `qwen3-coder-flash` — `Qwen 3 Coder Flash` (faster).
+   - `<qwen-model>` with one of the [available models](./qwen.md#view-available-models)
 
 3. When you run it, the output should be similar to this:
 
