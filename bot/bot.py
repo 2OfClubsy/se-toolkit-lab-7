@@ -31,7 +31,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Central command registry: stores command names mapped to their async handler functions
-_command_registry: dict[str, Callable[[], Awaitable[str]]] = {}
+_command_registry: dict[str, Callable] = {}
 
 
 def register_command(name: str) -> Callable:
@@ -49,13 +49,13 @@ def register_command(name: str) -> Callable:
         async def process_start_command() -> str:
             return "Welcome!"
     """
-    def decorator(func: Callable[[], Awaitable[str]]) -> Callable:
+    def decorator(func: Callable) -> Callable:
         _command_registry[name] = func
         return func
     return decorator
 
 
-def get_handler(command: str) -> Callable[[], Awaitable[str]] | None:
+def get_handler(command: str) -> Callable | None:
     """Retrieve a registered handler function by its command name."""
     return _command_registry.get(command)
 
@@ -70,18 +70,32 @@ async def execute_test_mode(command: str) -> None:
     Args:
         command: The command string to execute (e.g., "/start", "/scores lab-04")
     """
-    # Extract command name from input (e.g., "/start" -> "start")
-    cmd = command.lstrip("/").split()[0]
+    # Extract command name and arguments from input (e.g., "/start" -> "start")
+    parts = command.lstrip("/").split()
+    cmd = parts[0]
+    args = parts[1:] if len(parts) > 1 else []
 
     handler = get_handler(cmd)
     if handler is None:
-        print(f"Error: Unknown command '{command}'")
-        print("Available commands:", ", ".join(_command_registry.keys()))
+        print(f"Unknown command: {command}")
+        print("Use /help to see available commands.")
         return
 
     try:
-        response = await handler()
+        # Call handler with args if it accepts them
+        import inspect
+        sig = inspect.signature(handler)
+        if len(sig.parameters) > 0:
+            response = await handler(*args)
+        else:
+            response = await handler()
         print(response)
+    except TypeError as e:
+        if "missing" in str(e):
+            print(f"Error: Command '{cmd}' requires arguments. Usage: /{cmd} <arg>")
+        else:
+            print(f"Error executing command: {e}")
+            raise
     except Exception as e:
         print(f"Error executing command: {e}")
         raise
@@ -98,7 +112,14 @@ async def launch_telegram_bot() -> None:
         async def command_wrapper(message: types.Message, cmd=cmd_name) -> None:
             try:
                 handler = _command_registry[cmd]
-                response = await handler()
+                # Extract arguments from message text (e.g., "/scores lab-01" -> ["lab-01"])
+                parts = message.text.split()[1:] if message.text else []
+                import inspect
+                sig = inspect.signature(handler)
+                if len(sig.parameters) > 0:
+                    response = await handler(*parts)
+                else:
+                    response = await handler()
                 await message.answer(response)
             except Exception as e:
                 logger.error(f"Error handling command: {e}")
@@ -106,6 +127,12 @@ async def launch_telegram_bot() -> None:
 
         # Attach handler to aiogram's command filter
         dp.message.register(command_wrapper, Command(cmd_name))
+
+    # Fallback handler for unrecognized commands
+    async def unknown_command(message: types.Message) -> None:
+        await message.answer("Unknown command. Use /help to see available commands.")
+
+    dp.message.register(unknown_command)
 
     logger.info("Starting bot...")
     await dp.start_polling(bot)
