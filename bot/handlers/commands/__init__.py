@@ -43,7 +43,7 @@ async def process_labs_list() -> str:
 
 
 async def process_scores_query(lab: str = "") -> str:
-    """Retrieve per-task scores for a specified laboratory assignment.
+    """Retrieve per-task average scores for a specified laboratory assignment.
 
     Args:
         lab: The laboratory identifier (e.g., 'lab-01').
@@ -59,21 +59,21 @@ async def process_scores_query(lab: str = "") -> str:
         api_key=configuration.lms_api_key,
     )
     try:
-        result = await client.get_scores(lab)
+        result = await client.get_pass_rates(lab)
         if not result["ok"]:
             return f"Error: {result['error']}"
 
-        scores = result["scores"]
-        if not scores:
+        pass_rates = result["pass_rates"]
+        if not pass_rates:
             return f"No scores found for lab '{lab}'."
 
         # Format per-task scores
         score_lines = []
-        for task_score in scores:
+        for task_score in pass_rates:
             # Handle different response formats
             if isinstance(task_score, dict):
                 task_name = task_score.get("task", task_score.get("name", "Unknown"))
-                pass_rate = task_score.get("avg_score")
+                pass_rate = task_score.get("avg_score", task_score.get("pass_rate", 0))
                 # Convert to percentage if it's a decimal
                 if isinstance(pass_rate, float) and pass_rate <= 1:
                     pass_rate = pass_rate * 100

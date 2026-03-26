@@ -6,7 +6,8 @@ It supports two execution modes: running as a live bot or testing handlers local
 
 Examples:
     uv run bot.py                    # Launch the Telegram bot
-    uv run bot.py --test "/start"    # Execute handler in test mode
+    uv run bot.py --test "/start"    # Execute command handler in test mode
+    uv run bot.py --test "..."       # Test LLM intent routing for natural language
 """
 
 import argparse
@@ -15,7 +16,7 @@ import logging
 from typing import Callable, Awaitable
 
 from aiogram import Bot, Dispatcher, types
-from aiogram.filters import Command
+from aiogram.filters import Command, CommandObject
 
 from config import configuration
 from handlers import (
@@ -25,6 +26,7 @@ from handlers import (
     process_labs_list,
     process_scores_query,
 )
+from handlers.natural_language import process_natural_language_message
 
 # Initialize application logging
 logging.basicConfig(level=logging.INFO)
@@ -60,51 +62,73 @@ def get_handler(command: str) -> Callable | None:
     return _command_registry.get(command)
 
 
-async def execute_test_mode(command: str) -> None:
+async def execute_test_mode(input_text: str) -> None:
     """
-    Execute a command handler in isolation and output the result.
+    Execute a command handler or LLM router based on input in test mode.
 
-    This mode operates without network connectivity or Telegram API access,
-    enabling local testing of command logic.
+    - If input starts with '/', treat as a command
+    - Otherwise, route through LLM for natural language processing
 
     Args:
-        command: The command string to execute (e.g., "/start", "/scores lab-04")
+        input_text: The test input string (command or natural language)
     """
-    # Extract command name and arguments from input (e.g., "/start" -> "start")
-    parts = command.lstrip("/").split()
-    cmd = parts[0]
-    args = parts[1:] if len(parts) > 1 else []
+    import sys
 
-    handler = get_handler(cmd)
-    if handler is None:
-        print(f"Unknown command: {command}")
-        print("Use /help to see available commands.")
-        return
+    # Check if this is a command (starts with /)
+    if input_text.startswith("/"):
+        # Parse command (e.g., "/start" -> "start", "/scores lab-04" -> "scores")
+        parts = input_text.lstrip("/").split()
+        cmd = parts[0]
+        args = parts[1:] if len(parts) > 1 else []
 
-    try:
-        # Call handler with args if it accepts them
-        import inspect
-        sig = inspect.signature(handler)
-        if len(sig.parameters) > 0:
-            response = await handler(*args)
-        else:
-            response = await handler()
-        print(response)
-    except TypeError as e:
-        if "missing" in str(e):
-            print(f"Error: Command '{cmd}' requires arguments. Usage: /{cmd} <arg>")
-        else:
+        handler = get_handler(cmd)
+        if handler is None:
+            print(f"Unknown command: {input_text}")
+            print("Use /help to see available commands.")
+            return
+
+        try:
+            # Call handler with args if it accepts them
+            import inspect
+            sig = inspect.signature(handler)
+            if len(sig.parameters) > 0:
+                response = await handler(*args)
+            else:
+                response = await handler()
+            print(response)
+        except TypeError as e:
+            if "missing" in str(e):
+                print(f"Error: Command '{cmd}' requires arguments. Usage: /{cmd} <arg>")
+            else:
+                print(f"Error executing command: {e}")
+                raise
+        except Exception as e:
             print(f"Error executing command: {e}")
             raise
-    except Exception as e:
-        print(f"Error executing command: {e}")
-        raise
+    else:
+        # Natural language message - route through LLM
+        print(f"[llm] Processing: {input_text}", file=sys.stderr)
+        try:
+            response = await process_natural_language_message(input_text, debug=True)
+            print(response)
+        except Exception as e:
+            print(f"Error: {e}", file=sys.stderr)
+            raise
 
 
 async def launch_telegram_bot() -> None:
     """Initialize and start the Telegram bot to process incoming messages."""
     bot = Bot(token=configuration.bot_token)
     dp = Dispatcher()
+
+    # Helper to send response with optional keyboard
+    async def send_response(message: types.Message, response) -> None:
+        """Send response handling both tuple (text, keyboard) and plain text."""
+        if isinstance(response, tuple):
+            text, keyboard = response
+            await message.answer(text, reply_markup=keyboard)
+        else:
+            await message.answer(response)
 
     # Bind all registered commands to aiogram message handlers
     for cmd_name, handler_func in _command_registry.items():
@@ -120,7 +144,7 @@ async def launch_telegram_bot() -> None:
                     response = await handler(*parts)
                 else:
                     response = await handler()
-                await message.answer(response)
+                await send_response(message, response)
             except Exception as e:
                 logger.error(f"Error handling command: {e}")
                 await message.answer("Sorry, something went wrong.")
@@ -128,11 +152,51 @@ async def launch_telegram_bot() -> None:
         # Attach handler to aiogram's command filter
         dp.message.register(command_wrapper, Command(cmd_name))
 
-    # Fallback handler for unrecognized commands
-    async def unknown_command(message: types.Message) -> None:
-        await message.answer("Unknown command. Use /help to see available commands.")
+    # Handle callback queries from inline buttons
+    async def handle_callback_query(callback: types.CallbackQuery) -> None:
+        """Process inline button callback queries."""
+        data = callback.data
+        message = callback.message
 
-    dp.message.register(unknown_command)
+        try:
+            if data == "quick_labs":
+                response = await process_labs_list()
+                await message.answer(response)
+            elif data == "quick_health":
+                response = await process_health_check()
+                await message.answer(response)
+            elif data == "quick_scores":
+                await message.answer("Please specify a lab, e.g., 'lab-01' or use /scores lab-01")
+            elif data == "quick_top":
+                await message.answer("Please specify a lab for top students, e.g., 'Show top 5 in lab-01'")
+            elif data == "quick_help":
+                response = await process_help_command()
+                await message.answer(response)
+            elif data == "back":
+                await message.answer("Use /start to see main menu")
+
+            # Acknowledge the callback
+            await callback.answer()
+        except Exception as e:
+            logger.error(f"Error handling callback: {e}")
+            await callback.answer("Sorry, something went wrong.")
+
+    dp.callback_query.register(handle_callback_query)
+
+    # Handle all other text messages with the LLM intent router
+    async def process_text_message(message: types.Message) -> None:
+        try:
+            # Skip if this is a command (starts with /)
+            if message.text and message.text.startswith("/"):
+                return
+
+            response = await process_natural_language_message(message.text, debug=False)
+            await message.answer(response)
+        except Exception as e:
+            logger.error(f"Error in LLM routing: {e}")
+            await message.answer("Sorry, I'm having trouble understanding that right now.")
+
+    dp.message.register(process_text_message)
 
     logger.info("Starting bot...")
     await dp.start_polling(bot)
@@ -157,13 +221,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="LMS Telegram Bot Application")
     parser.add_argument(
         "--test",
-        metavar="COMMAND",
-        help="Execute in test mode with specified command (e.g., --test '/start')"
+        metavar="INPUT",
+        help="Execute in test mode: command (--test '/start') or LLM routing (--test 'what labs...')"
     )
     args = parser.parse_args()
 
     if args.test:
-        # Execute handler locally without Telegram connection
+        # Execute handler or LLM router locally
         asyncio.run(execute_test_mode(args.test))
     else:
         # Launch the live Telegram bot

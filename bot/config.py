@@ -36,9 +36,10 @@ class BotConfiguration(BaseSettings):
     lms_api_base_url: str
     lms_api_key: str
 
-    # Large Language Model API credentials (used in Task 3)
+    # Large Language Model API credentials (used for intent routing)
     llm_api_key: str = ""
     llm_api_base_url: str = ""
+    llm_api_model: str = "coder-model"
 
 
 # Global configuration instance for application-wide access
