@@ -1,18 +1,37 @@
 """Elementary command handlers: user onboarding and assistance."""
 
+from config import configuration
+
+
+def _extract_bot_identifier() -> str:
+    """Parse bot identifier from the authentication token.
+
+    Telegram bot tokens follow format: <bot_id>:<token>
+    The identifier represents the bot_id portion (e.g., 'MyBot' from 'MyBot:abc123...').
+    """
+    bot_token = configuration.bot_token
+    if ":" in bot_token:
+        return bot_token.split(":")[0]
+    return "LMS Bot"
+
 
 async def process_start_command() -> str:
-    """Generate a welcome message for new users initiating the bot."""
-    return "Welcome to the LMS Bot! Use /help to see available commands."
+    """Generate a personalized welcome message including the bot identifier."""
+    bot_identifier = _extract_bot_identifier()
+    return (
+        f"Welcome to {bot_identifier}!\n\n"
+        "I can help you check your LMS labs and scores.\n"
+        "Use /help to see available commands."
+    )
 
 
 async def process_help_command() -> str:
-    """Provide a comprehensive list of all available bot commands."""
+    """Display comprehensive documentation of all available bot commands."""
     return (
-        "Available commands:\n"
+        "Available commands:\n\n"
         "  /start — Welcome message\n"
-        "  /help — Show this help\n"
-        "  /health — Check backend status\n"
-        "  /labs — List available labs\n"
-        "  /scores <lab> — Get scores for a lab"
+        "  /help — Show this help message\n"
+        "  /health — Check if the LMS backend is running\n"
+        "  /labs — List all available labs\n"
+        "  /scores <lab> — Get your scores for a specific lab"
     )
