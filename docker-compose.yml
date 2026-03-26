@@ -89,6 +89,21 @@ services:
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile
 
+  bot:
+    build:
+      context: bot/
+      network: host
+    network_mode: host
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+      - LMS_API_BASE_URL=${LMS_API_BASE_URL}
+      - LMS_API_KEY=${LMS_API_KEY}
+      - LLM_API_KEY=${LLM_API_KEY}
+      - LLM_API_BASE_URL=${LLM_API_BASE_URL}
+      - LLM_API_MODEL=${LLM_API_MODEL}
+    ports:
+      - 8081:8081
+
 volumes:
   postgres_data:
 
